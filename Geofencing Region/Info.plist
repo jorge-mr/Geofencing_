@@ -45,6 +45,10 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>b</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>a</string>
 	<key>NSLocationAlwaysUsageDescription</key>
 	<string>We want to let you know when you&apos;re next to something cool!</string>
 </dict>

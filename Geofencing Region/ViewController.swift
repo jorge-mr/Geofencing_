@@ -11,7 +11,7 @@ import MapKit
 import CoreLocation
 import UserNotifications
 
-class ViewController: UIViewController {
+class ViewController: UIViewController, CLLocationManagerDelegate, MKMapViewDelegate {
     
     
     @IBOutlet weak var mapView: MKMapView!
@@ -23,20 +23,41 @@ class ViewController: UIViewController {
         super.viewDidLoad()
         
         UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) { (granted, error) in }
-        
+        mapView.delegate = self
         locationManager.delegate = self
+        mapView.userTrackingMode = .followWithHeading // light on user location o<
+        mapView.showsUserLocation = true
+        
         locationManager.requestAlwaysAuthorization()
-        locationManager.desiredAccuracy = kCLLocationAccuracyBest
-        locationManager.startUpdatingLocation()
+        
+        if CLLocationManager.locationServicesEnabled(){
+            locationManager.delegate = self
+            locationManager.desiredAccuracy = kCLLocationAccuracyBest
+            locationManager.startUpdatingLocation()
+            makeZoom()
+        }
+        
+        //Reconocer gesto
+        let uilpgr = UILongPressGestureRecognizer(target: self, action: #selector(longpress))
+        uilpgr.minimumPressDuration = 2 //tiempo para que se reconozca el gesto
+        mapView.addGestureRecognizer(uilpgr) //agrega el gesto al mapa
+    }
+    
+    func makeZoom(){
+        guard let userCoordinates = locationManager.location?.coordinate else { return }
+        let latDelta : CLLocationDegrees = 0.025
+        let longDelta : CLLocationDegrees = 0.025
+        let span = MKCoordinateSpan(latitudeDelta: latDelta, longitudeDelta: longDelta)//nivel de Zoom en Ancho y alto de la region
+        let region = MKCoordinateRegion(center: userCoordinates, span: span)
+        mapView.setRegion(region, animated: true)
     }
 
     
-    @IBAction func addRegion(_ sender: Any) {
-        guard let longPress = sender as? UILongPressGestureRecognizer else { return }
-        let touchLocation = longPress.location(in: mapView)
-        let coordinate = mapView.convert(touchLocation, toCoordinateFrom: mapView)
+    @objc func longpress(gestureRecognizer: UIGestureRecognizer) {
+        let touchPoint = gestureRecognizer.location(in: self.mapView)//guarda las coordenadas de donde se hizo el gesto
+        let coordinate = mapView.convert(touchPoint, toCoordinateFrom: mapView)
         let region = CLCircularRegion(center: coordinate, radius: 200, identifier: "geofence")
-        mapView.removeOverlays(mapView.overlays)
+        //mapView.removeOverlays(mapView.overlays)
         locationManager.startMonitoring(for: region)
         let circle = MKCircle(center: coordinate, radius: region.radius)
         mapView.add(circle)
@@ -58,10 +79,6 @@ class ViewController: UIViewController {
         let request = UNNotificationRequest(identifier: "notif", content: content, trigger: nil)
         UNUserNotificationCenter.current().add(request, withCompletionHandler: nil)
     }
-
-}
-
-extension ViewController: CLLocationManagerDelegate {
     
     func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
         locationManager.stopUpdatingLocation()
@@ -69,26 +86,23 @@ extension ViewController: CLLocationManagerDelegate {
     }
     
     func locationManager(_ manager: CLLocationManager, didEnterRegion region: CLRegion) {
-        let title = "You Entered the Region"
-        let message = "Wow theres cool stuff in here! YAY!"
+        let title = "Entraste a la region"
+        let message = "Revisa nuestros descuentos"
         showAlert(title: title, message: message)
         showNotification(title: title, message: message)
     }
     
     func locationManager(_ manager: CLLocationManager, didExitRegion region: CLRegion) {
-        let title = "You Left the Region"
-        let message = "Say bye bye to all that cool stuff. =["
+        let title = "Dejaste la region"
+        let message = "Vuelve pronto, hay descuentos"
         showAlert(title: title, message: message)
         showNotification(title: title, message: message)
     }
     
-}
-
-extension ViewController: MKMapViewDelegate {
     func mapView(_ mapView: MKMapView, rendererFor overlay: MKOverlay) -> MKOverlayRenderer {
         guard let circleOverlay = overlay as? MKCircle else { return MKOverlayRenderer() }
         let circleRenderer = MKCircleRenderer(circle: circleOverlay)
-        circleRenderer.strokeColor = .red
+        circleRenderer.strokeColor = .blue
         circleRenderer.fillColor = .red
         circleRenderer.alpha = 0.5
         return circleRenderer
